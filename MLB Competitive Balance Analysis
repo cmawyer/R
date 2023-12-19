@@ -1,0 +1,81 @@
+#creating WPCT variable in analysis_mlb
+analysis_mlb <- read.csv("/cloud/project/research_project_ECON482_S2022/analysis_data/analysis_mlb.csv")
+analysis_mlb$WPCT <- analysis_mlb$w / analysis_mlb$g
+#dropping unneeded years due to inter league play (1997-2020)
+#analysis_mlb <- subset(analysis_mlb, year<1997)
+#dropping observations prior to 1964 due to draft (1920 for now)
+analysis_mlb <- subset(analysis_mlb, year>1919)
+#this function created variable named "X" so I need to drop that
+analysis_mlb <- subset(analysis_mlb, select = -c(X))
+
+#dropping variables
+analysis_mlb <- subset(analysis_mlb, select = -c(divwin, wcwin, lgwin, wswin))
+
+#creating new data set
+analysis_mlb$nt <- 1
+ntlgyr <- aggregate(analysis_mlb$nt, list(analysis_mlb$lgid,analysis_mlb$year), FUN=sum)
+sdwplgyr <- aggregate(analysis_mlb$WPCT, list(analysis_mlb$lgid,analysis_mlb$year), FUN=sd)
+sdwlgyr <- aggregate(analysis_mlb$w, list(analysis_mlb$lgid,analysis_mlb$year), FUN=sd)
+sdwplgyr$nteams <- ntlgyr$x
+sdwplgyr$sdw <- sdwlgyr$x
+final_data <- sdwplgyr
+final_data$sdwpct <- final_data$x
+final_data$dh <- ifelse(sdwplgyr$Group.2>1972,1,0)
+final_data$ILplay <- ifelse(sdwplgyr$Group.2>1996,1,0)
+final_data$draft <- ifelse(sdwplgyr$Group.2>1964,1,0)
+final_data$AL <- ifelse(sdwplgyr$Group.1=="AL",1,0)
+
+final_data$x <- NULL
+names(final_data)[names(final_data) == "Group.1"] <- "league"
+names(final_data)[names(final_data) == "Group.2"] <- "year"
+final_data$FA <- ifelse(final_data$year>1975,1,0)
+final_data65_96 <- final_data
+
+```{r, message = FALSE, echo = FALSE, results='asis'}
+install.packages("vtable")
+library(vtable)
+st(final_data, labels = c("League", "Year", "Number of Teams", "Standard Deviation of Wins", "Standard Deviation of Win %", "Seasons Where DH is Present","Seasons with Inter-league Play","Seasons with Draft","Fraction of Sample in AL", "Seasons with Free Agency" ),
+   title = "Summary Statistics",
+   note = "Table Notes: Summary statistics for all variables used in multiple regression models. This table only contains statistics in the 1965-1996 sample period. Some models do not include all variables.")
+```
+
+## {.smaller}
+
+<div class="columns-2">
+
+```{r, echo=FALSE, message=FALSE, results='asis'}
+lm_sdw_dh_al_dhxal_nt_FA <- lm(sdw ~ AL + dh:AL + nteams + FA + draft + ILplay, final_data)
+lm_sdw <- lm(sdw ~ AL + dh:AL, final_data)
+library(stargazer)
+stargazer(lm_sdw, lm_sdw_dh_al_dhxal_nt_FA, type = "html", 
+title = "Table 2: Ordinary Least Squares(OLS) Regression Results", 
+omit = c("Constant"),
+omit.stat = c("adj.rsq", "f", "ser"),
+covariate.labels = c("American League Indicator","Number of Teams in League","Free Agency Indicator", "Draft Indicator", "Inter-League Play Indicator", "Interaction Between American League and Designated Hitter Indicators"),
+dep.var.labels = "Standard Deviation of Wins by League")
+```
+
+
+
+```{r, echo=FALSE, message=FALSE, results='asis'}
+lm_sdwpct_dh_al_dhxal_nt_FA <- lm(sdwpct ~ AL + dh:AL + nteams + FA + draft + ILplay, final_data)
+lm_sdwpct <- lm(sdwpct ~ AL + dh:AL, final_data)
+library(stargazer)
+stargazer(lm_sdwpct, lm_sdwpct_dh_al_dhxal_nt_FA, type = "html", 
+title = "Table 3: Ordinary Least Squares(OLS) Regression Results", 
+omit = c("Constant"),
+covariate.labels = c("American League Indicator","Number of Teams in League","Free Agency Indicator", "Draft Indicator", "Inter-League Play Indicator", "Interaction Between American League and Designated Hitter Indicators"),
+omit.stat = c("adj.rsq", "f", "ser"),
+dep.var.labels = "Standard Deviation of Winning Percentages by League")
+
+## Discussion & Conclusions | Limitations & Implications for Policy and Future Research {.smaller}
+
+- Although no statistical significance is found for the effect of the DH when controlling for the various rule changes, I find a large and statistically significant positive effect of the the MLB Draft on competitive balance, which is expected and makes sense given the nature & purpose of the draft.  
+    - The difference of only 8 years between the beginning of the DH and Draft probably have an effect on the results. The DH has a positive effect on competitive balance, but to an unknown extent due to the Draft. 
+- **Implications on Uncertainty of Outcome Hypothesis**: 
+    -The DH and Draft had a positive effect on competitive balance, so they most likely had a positive effect on attendance.
+- Future literature should note the effects that factors like rule changes have when examining competitive balance of leagues.
+-Future policy that introduces the DH to the NL would most likely increase competitive balance
+- **Limitations**: 
+    -This model is limited by the static measures used for competitive balance. A difference of real and idealized HHI measure would benefit this model. 
+    -The data used is a rather small sample size. 
