@@ -1,0 +1,145 @@
+## Data Description
+```{r, echo=FALSE, message = FALSE, warning = FALSE}
+#load tidyverse, stargazer, vtable
+library(tidyverse)
+library(stargazer)
+library(vtable)
+
+```{r, echo=FALSE, message = FALSE, warning = FALSE}
+#Read analysis file
+library(haven)
+ef1<- read_dta("/home/jeruseski/economicfreedom_exercise/data/efw_brfss_2001_2012.dta")
+#View(ef1)
+```
+
+```{r, echo=FALSE, message = FALSE, warnings = FALSE}
+#Clean up variables
+ef1["exercise"][ef1["exercise"] == 2] <- 0   # Change exercise=2 to exercise=0
+ef1$hs_high<-ifelse(ef1$genhlth == 1 | ef1$genhlth == 2, 1, 0) # Generate variable for health status = high
+ef1$binge_drink<-ifelse(ef1$binge_dr > 1 & ef1$binge_dr<= 76, 1, 0) # Generate variable for binge drinking
+ef1$smoker<-ifelse(ef1$SMOKE100 == 1, 1, 0) #Generate variable for smoker
+#glimpse(ef1)
+```
+
+<!-- Create a summary statistics table for selected variables using stargazer -->
+```{r, results='as.is', echo = FALSE, warning = FALSE, message = FALSE}
+ef1_sum_stats <- ef1[c("income", "age","yred","female", "married", "employed","retired","exercise","flushot","efi", "efi_lm", "efi_sg", "efi_tdt")]
+
+#glimpse(ef1_sum_stats)
+
+stargazer(ef1_sum_stats, type = "html", 
+          header=FALSE, 
+          title            = "Table 1: Summary Statistics", digits = 2,
+          covariate.labels = c("Income (000) 2010$",  "Age", "Years of Education", "Female", "Married", "Employed",                    "Retired",  "Active", "Flu Shot in Last Year", "Economic Freedom Index - Overall", "Economic Freedom Index - Labor            Market", "Economic Freedom Index - Size of Government", "Economic Freedom Index - Takings/Taxes"))
+         
+```
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+st(ef1_sum_stats,
+   vars=c("income", "age","yred","female", "married", "employed","retired","exercise","flushot","efi", "efi_lm",
+                           "efi_sg", "efi_tdt"),
+   labels=c(c("Income (000) 2010$",  "Age", "Years of Education", "Female", "Married", "Employed",                    "Retired",  "Active", "Flu Shot in Last Year", "Economic Freedom Index - Overall", "Economic Freedom Index - Labor            Market", "Economic Freedom Index - Size of Government", "Economic Freedom Index - Takings/Taxes")),
+   summ = c('mean(x)','sd(x)','min(x)','pctile(x)[25]','pctile(x)[75]','max(x)'),
+   note="Table Notes: Summary statistics for analysis sample.",
+   title="Table 1: Summary Statistics")
+```
+
+<!-- Estimate TWFE baseline specification of exercise on EFI components -->
+
+```{r, echo = FALSE, message = FALSE}
+exer_lm1 <- lm(exercise ~ factor(fips) + factor(year) + income + age + yred + female + married + employed + retired  + efi, data = ef1)
+#summary(exer_lm1)
+
+exer_lm2 <- lm(exercise ~ factor(fips) + factor(year) + income + age + yred + female + married + employed + retired  + efi_lm, data = ef1)
+#summary(exer_lm2)
+
+exer_lm3 <- lm(exercise ~ factor(fips) + factor(year) + income + age + yred + female + married + employed + retired  + efi_sg, data = ef1)
+#summary(exer_lm3)
+
+exer_lm4 <- lm(exercise ~ factor(fips) + factor(year) + income + age + yred + female + married + employed + retired  + efi_tdt, data = ef1)
+#summary(exer_lm4)
+```
+
+```{r, echo = TRUE, message=FALSE, warning = FALSE, results="asis"}
+stargazer(exer_lm1, exer_lm2, exer_lm3, exer_lm4, type = "latex", 
+          header=FALSE, # to get rid of r package output text
+          title            = "Table 3 - Empirical Results -  LPM, Exercise and Economic Freedom",
+          keep = c("income", "age", "yred", "female", "married", "employed", "retired", "efi", "efi_lm", "efi_sg", "efi_tdt"),
+          covariate.labels = c("Income", "Age", "Years of Education", "Female", "Married", "Employed", "Retired", "Economic Freedom Index - Overall", "Economic Freedom Index - Labor Market", "Economic Freedom Index - State Government", "Economic Freedom Index - Takings/Taxes"),
+          dep.var.caption  = "Dependent Variable:",
+          dep.var.labels   = "Any Exercise in Past 30 Days",
+          omit.stat = c("adj.rsq", "f", "ser"))
+```
+<!-- Restrict sample to employed individuals -->
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+ef_employ <- subset(ef1, employed == 1)
+
+<!-- Estimate models for robustness checks  add rural-->
+```{r, echo = FALSE, message = FALSE}
+rural_1 <- lm(exercise ~ factor(fips) + factor(year) + income + age + yred + female + married + employed + retired  + rural + efi, data = ef1)
+#summary(rural_1)
+
+rural_2 <- lm(exercise ~ factor(fips) + factor(year) + income + age + yred + female + married + employed + retired  + rural + efi_lm, data = ef1)
+#summary(rural_2)
+
+rural_3 <- lm(exercise ~ factor(fips) + factor(year) + income + age + yred + female + married + employed + retired  + rural + efi_sg, data = ef1)
+#summary(rural_3)
+
+rural_4 <- lm(exercise ~ factor(fips) + factor(year) + income + age + yred + female + married + employed + retired  + rural + efi_tdt, data = ef1)
+#summary(rural_4)
+```
+
+<!-- Estimate models for robustness checks  only employed-->
+```{r, echo = FALSE, message = FALSE}
+employ_1 <- lm(exercise ~ factor(fips) + factor(year) + income + age + yred + female + married + efi, data = ef_employ)
+#summary(employ_1)
+
+employ_2 <- lm(exercise ~ factor(fips) + factor(year) + income + age + yred + female + married + efi_lm, data = ef_employ)
+#summary(employ_2)
+
+employ_3 <- lm(exercise ~ factor(fips) + factor(year) + income + age + yred + female + married  + efi_sg, data = ef_employ)
+#summary(employ_3)
+
+employ_4 <- lm(exercise ~ factor(fips) + factor(year) + income + age + yred + female + married   + efi_tdt, data = ef_employ)
+#summary(employ_4)
+```
+
+<!-- Estimate models for robustness checks  add unemployment rate-->
+```{r, echo = FALSE, message = FALSE}
+urate_1 <- lm(exercise ~ factor(fips) + factor(year) + income + age + yred + female + married + employed + retired  + urate + efi, data = ef1)
+#summary(urate_1)
+
+urate_2 <- lm(exercise ~ factor(fips) + factor(year) + income + age + yred + female + married + employed + retired  + urate + efi_lm, data = ef1)
+#summary(urate_2)
+
+urate_3 <- lm(exercise ~ factor(fips) + factor(year) + income + age + yred + female + married + employed + retired  + urate + efi_sg, data = ef1)
+#summary(urate_3)
+
+urate_4 <- lm(exercise ~ factor(fips) + factor(year) + income + age + yred + female + married + employed + retired  + urate + efi_tdt, data = ef1)
+#summary(urate_4)
+```
+
+<!-- Estimate models for robustness checks  flu shot falsification-->
+```{r, echo = FALSE, message = FALSE}
+flu_1 <- lm(flushot ~ factor(fips) + factor(year) + income + age + yred + female + married + employed + retired  +  efi, data = ef1)
+#summary(flu_1)
+
+flu_2 <- lm(flushot ~ factor(fips) + factor(year) + income + age + yred + female + married + employed + retired + efi_lm, data = ef1)
+#summary(flu_2)
+
+flu_3 <- lm(flushot ~ factor(fips) + factor(year) + income + age + yred + female + married + employed + retired  + efi_sg, data = ef1)
+#summary(flu_3)
+
+flu_4 <- lm(flushot ~ factor(fips) + factor(year) + income + age + yred + female + married + employed + retired  + efi_tdt, data = ef1)
+#summary(flu_4)
+```
+
+
+```{r, echo = TRUE, message=FALSE, warning = FALSE, results= 'asis'}
+stargazer(rural_1, rural_1, rural_3, rural_4, type = "latex", 
+          header=FALSE, # to get rid of r package output text
+          title            = "Table 3 - Empirical Results -  LPM, Exercise and Economic Freedom",
+          keep = c( "efi", "efi_lm", "efi_sg", "efi_tdt"),
+          covariate.labels = c("Economic Freedom Index - Overall", "Economic Freedom Index - Labor Market", "Economic Freedom Index - State Government", "Economic Freedom Index - Takings/Taxes"),
+          dep.var.caption  = "Dependent Variable:",
+          dep.var.labels   = "Any Exercise in Past 30 Days",
+          omit.stat = c("adj.rsq", "f", "ser"))
