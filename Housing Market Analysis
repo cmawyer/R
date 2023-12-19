@@ -1,0 +1,38 @@
+install.packages("car")
+
+library(car)
+
+library(wooldridge)
+
+house_prices <- as.data.frame(hprice1)
+
+summary(house_prices)
+#price           assess          bdrms          lotsize          sqrft     
+#Min.   :111.0   Min.   :198.7   Min.   :2.000   Min.   : 1000   Min.   :1171  
+#1st Qu.:230.0   1st Qu.:253.9   1st Qu.:3.000   1st Qu.: 5733   1st Qu.:1660  
+#Median :265.5   Median :290.2   Median :3.000   Median : 6430   Median :1845  
+#Mean   :293.5   Mean   :315.7   Mean   :3.568   Mean   : 9020   Mean   :2014  
+#3rd Qu.:326.2   3rd Qu.:352.1   3rd Qu.:4.000   3rd Qu.: 8583   3rd Qu.:2227  
+#Max.   :725.0   Max.   :708.6   Max.   :7.000   Max.   :92681   Max.   :3880  
+#colonial          lprice         lassess         llotsize          lsqrft     
+#Min.   :0.0000   Min.   :4.710   Min.   :5.292   Min.   : 6.908   Min.   :7.066  
+#1st Qu.:0.0000   1st Qu.:5.438   1st Qu.:5.537   1st Qu.: 8.654   1st Qu.:7.415  
+#Median :1.0000   Median :5.582   Median :5.671   Median : 8.769   Median :7.520  
+#Mean   :0.6932   Mean   :5.633   Mean   :5.718   Mean   : 8.905   Mean   :7.573  
+#3rd Qu.:1.0000   3rd Qu.:5.788   3rd Qu.:5.864   3rd Qu.: 9.058   3rd Qu.:7.708  
+#Max.   :1.0000   Max.   :6.586   Max.   :6.563   Max.   :11.437   Max.   :8.264  
+
+regression_1 <- lm(price ~ lotsize + colonial, data = house_prices)
+summary(regression_1)
+
+avPlots(regression_1)
+
+regression_2 <- lm(price ~ sqrft + bdrms, data = house_prices)
+summary(regression_2)
+
+avPlots(regression_2)
+
+regression_3 <- lm(price ~ sqrft + bdrms + assess, data = house_prices)
+summary(regression_3)
+
+avPlots(regression_3)
